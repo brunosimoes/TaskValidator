@@ -1,0 +1,67 @@
+{
+  "camera_sources": [
+    0,
+    "rtsp://camera2.local:554/stream",
+    "rtsp://camera3.local:554/stream"
+  ],
+  "sensor_config": {
+    "pressure": {
+      "expected_range": [
+        90,
+        110
+      ],
+      "alert_threshold": 120
+    },
+    "temperature": {
+      "expected_range": [
+        20,
+        30
+      ],
+      "alert_threshold": 35
+    },
+    "proximity": {
+      "expected_range": [
+        40,
+        60
+      ],
+      "alert_threshold": 80
+    },
+    "vibration": {
+      "expected_range": [
+        1,
+        3
+      ],
+      "alert_threshold": 5
+    }
+  },
+  "step_definitions": [
+    "Component Placement",
+    "Circuit Board Mounting",
+    "Screw Fastening",
+    "Cable Connection",
+    "Quality Check"
+  ],
+  "model_dir": "models",
+  "vision_data_dir": "data/vision",
+  "sensor_data_path": "data/sensor_data.csv",
+  "vision_epochs": 30,
+  "sensor_epochs": 20,
+  "logging": {
+    "level": "INFO",
+    "file": "logs/task_monitor.log",
+    "rotate_size_mb": 10,
+    "keep_logs": 7
+  },
+  "api": {
+    "port": 5000,
+    "allowed_origins": [
+      "http://localhost:5000"
+    ],
+    "auth_required": true
+  },
+  "performance": {
+    "batch_size": 4,
+    "inference_threads": 2,
+    "gpu_memory_fraction": 0.5
+  }
+}

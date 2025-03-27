@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Validator</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body class="bg-gray-100">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-5 shadow-lg">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <!-- Logo/Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <h1 class="text-2xl font-bold tracking-tight">Task Validator</h1>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <!-- Connection Status Indicator with subtle animation -->
+            <div class="flex items-center bg-opacity-20 bg-white px-3 py-1.5 rounded-full">
+              <div class="h-2 w-2 rounded-full mr-2 bg-yellow-400 animate-pulse" id="statusIndicator"></div>
+              <span id="connectionStatus" class="text-sm font-medium">Connecting...</span>
+            </div>
+
+            <!-- Action Buttons with improved styling -->
+            <div class="flex space-x-3">
+              <button id="startButton"
+                class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-opacity-50">
+                <div class="flex items-center space-x-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Start</span>
+                </div>
+              </button>
+
+              <button id="resetButton"
+                class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-opacity-50">
+                <div class="flex items-center space-x-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Reset</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="flex-grow container mx-auto p-6">
+      <!-- Start Configuration Panel -->
+      <div id="configPanel" class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-xl font-semibold mb-4">Configuration</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Step Definitions</label>
+              <textarea id="processStepConfig" rows="5" class="w-full p-2 border border-gray-300 rounded-md"
+                placeholder='{"0": "Component placement", "1": "Screw fastening", "2": "Quality inspection"}'></textarea>
+            </div>
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Camera Sources</label>
+              <input type="text" id="cameraSources" class="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="[0]">
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sensor Configuration</label>
+              <textarea id="sensorConfig" rows="5" class="w-full p-2 border border-gray-300 rounded-md"
+                placeholder='{"pressure": {"min": 0, "max": 200}, "temperature": {"min": 0, "max": 100}, "vibration": {"min": 0, "max": 10}, "proximity": {"min": 0, "max": 100}}'></textarea>
+            </div>
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Model Paths (Optional)</label>
+              <textarea id="modelPaths" rows="2" class="w-full p-2 border border-gray-300 rounded-md"
+                placeholder='{"vision": "models/vision_model.h5", "sensor": "models/sensor_model.h5"}'></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Analysis Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-xl font-semibold mb-4">Image Analysis</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Image Upload Panel -->
+          <div class="space-y-4">
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center" id="dropZone">
+              <div class="space-y-2">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                  </path>
+                </svg>
+                <p class="text-gray-500">Drag and drop an image, or</p>
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <button id="browseButton"
+                  class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none">
+                  Browse Files
+                </button>
+                <p class="text-xs text-gray-400">Supports JPG, PNG, GIF</p>
+              </div>
+            </div>
+            <div class="relative hidden" id="previewContainer">
+              <img id="imagePreview" class="w-full h-auto max-h-64 object-contain rounded-lg" src="" alt="Preview">
+              <button id="clearImageButton"
+                class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <button id="analyzeButton" disabled
+              class="w-full px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none opacity-50 cursor-not-allowed">
+              Analyze Image
+            </button>
+          </div>
+
+          <!-- Analysis Results Panel -->
+          <div class="border rounded-lg p-4">
+            <h3 class="font-semibold mb-3">Analysis Results</h3>
+            <div id="analysisResults" class="space-y-4">
+              <div class="text-gray-500 text-center py-8">Upload an image to see analysis results</div>
+            </div>
+            <div id="analysisLoadingIndicator" class="hidden">
+              <div class="text-center py-6">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                <p class="mt-2 text-gray-600">Analyzing image...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Step Completion Status -->
+        <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
+          <h2 class="text-xl font-semibold mb-4">Tasks</h2>
+          <div id="stepsContainer" class="space-y-4">
+            <!-- Steps will be added here dynamically -->
+            <div class="text-gray-500">Start monitoring to see step data</div>
+          </div>
+        </div>
+
+        <!-- Alerts Panel -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-semibold mb-4">Alerts</h2>
+          <div id="alertsContainer" class="space-y-3 max-h-80 overflow-y-auto">
+            <!-- Alerts will be added here dynamically -->
+            <div class="text-gray-500">No alerts at this time</div>
+          </div>
+
+          <div class="mt-6">
+            <h3 class="font-medium mb-2">System Status</h3>
+            <div id="systemStatus" class="flex flex-col space-y-2">
+              <!-- System status will be added here dynamically -->
+              <div class="flex justify-between items-center">
+                <span>ML Engine:</span>
+                <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-md text-sm">Not Started</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent History -->
+        <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-3">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Recent Activity</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Event
+                  </th>
+                  <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                  <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Confidence
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="historyContainer" class="bg-white divide-y divide-gray-200">
+                <!-- History will be added here dynamically -->
+                <tr>
+                  <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                    Start monitoring to see history data
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white p-4 text-center">
+      <p></p>
+    </footer>
+  </div>
+
+  <!-- Add event handling for new buttons -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Default configuration values
+      const defaultConfig = {
+        step_definitions: [
+          "Component Placement",
+          "Circuit Board Mounting",
+          "Screw Fastening",
+          "Cable Connection",
+          "Quality Check"
+        ],
+        camera_sources: [0],
+        sensor_config: {
+          "pressure": { "min": 0, "max": 200 },
+          "temperature": { "min": 0, "max": 100 },
+          "vibration": { "min": 0, "max": 10 },
+          "proximity": { "min": 0, "max": 100 }
+        },
+        model_paths: {
+          "vision": "models/vision/vision_model.h5",
+          "sensor": "models/sensor/sensor_model.h5"
+        }
+      };
+
+      // Set default values in form
+      document.getElementById('processStepConfig').value = JSON.stringify(defaultConfig.step_definitions, null, 2);
+      document.getElementById('cameraSources').value = JSON.stringify(defaultConfig.camera_sources);
+      document.getElementById('sensorConfig').value = JSON.stringify(defaultConfig.sensor_config, null, 2);
+      document.getElementById('modelPaths').value = JSON.stringify(defaultConfig.model_paths, null, 2);
+
+      // Start button event handler
+      const startButton = document.getElementById('startButton');
+      if (startButton) {
+        startButton.addEventListener('click', () => {
+          // Prepare config from form inputs
+          const config = {
+            step_definitions: JSON.parse(document.getElementById('processStepConfig').value),
+            camera_sources: JSON.parse(document.getElementById('cameraSources').value),
+            sensor_config: JSON.parse(document.getElementById('sensorConfig').value),
+            model_paths: JSON.parse(document.getElementById('modelPaths').value)
+          };
+
+          // Start monitoring with the config
+          startMonitoring(config);
+        });
+      }
+
+      // Function to start monitoring
+      function startMonitoring(config) {
+        // Show loading state
+        startButton.textContent = 'Starting...';
+        startButton.disabled = true;
+
+        // Call API to start monitoring
+        fetch('http://localhost:5000/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(config)
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('Monitoring started:', data);
+
+            checkConnectionStatus();
+
+            // Hide config panel
+            document.getElementById('configPanel').style.display = 'none';
+
+            // Update button state
+            startButton.textContent = 'Monitoring Active';
+            startButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+            startButton.classList.add('bg-green-700', 'hover:bg-green-800');
+
+            // Add success alert
+            if (typeof addAlert === 'function') {
+              addAlert({
+                type: 'success',
+                message: 'Process monitoring started successfully',
+                timestamp: new Date()
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error starting monitoring:', error);
+
+            // Reset button state
+            startButton.textContent = 'Start Monitoring';
+            startButton.disabled = false;
+
+            // Add error alert
+            if (typeof addAlert === 'function') {
+              addAlert({
+                type: 'error',
+                message: `Error starting monitoring: ${error.message}`,
+                timestamp: new Date()
+              });
+            }
+          });
+      }
+
+    });
+  </script>
+
+  <script src="static/main.js"></script>
+</body>
+
+</html>

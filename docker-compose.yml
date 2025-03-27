@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  task-completition-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./shared/logs:/app/logs
+      - ./shared/models:/app/models
+      - ./shared/dataset:/app/dataset
+      - ./shared/prepared_data:/app/prepared_data
+      - ./shared/test_results:/app/test_results
+    environment:
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    runtime: nvidia
