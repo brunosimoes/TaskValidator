@@ -1,0 +1,50 @@
+FROM tensorflow/tensorflow:2.9.0-gpu
+
+# Set up Python environment
+ENV PYTHONUNBUFFERED=1 \
+  DEBIAN_FRONTEND=noninteractive \
+  PYTHON_VERSION=3.9
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3.9 \
+  python3-pip \
+  python3-setuptools \
+  python3-wheel \
+  python3.9-dev \
+  libgl1-mesa-glx \
+  libglib2.0-0 \
+  libsm6 \
+  libxext6 \
+  libxrender-dev \
+  libfontconfig1 \
+  libfreetype6 \
+  pkg-config \
+  git \
+  wget \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Make sure python3.9 is the default python3
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+
+# Upgrade pip and setuptools
+RUN python3.9 -m pip install --upgrade pip setuptools wheel
+
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements-gpu.txt .
+
+# Clear any existing Werkzeug/Flask installations first
+RUN python3.9 -m pip uninstall -y flask werkzeug
+RUN python3.9 -m pip install --no-cache-dir -r requirements-gpu.txt pandas
+
+# Copy application code
+COPY . .
+
+# Expose the API port
+EXPOSE 5000
+
+# Run the application
+CMD ["python3.9", "app.py"]
